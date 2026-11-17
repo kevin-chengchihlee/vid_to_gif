@@ -1,47 +1,33 @@
-import { GIFEncoder, quantize, applyPalette } from 'https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm';
-
 const $=s=>document.querySelector(s), fileInput=$('#fileInput'), dropzone=$('#dropzone'), editor=$('#editor'), video=$('#video');
 const start=$('#startTime'), end=$('#endTime'), startR=$('#startRange'), endR=$('#endRange');
-let file, objectUrl, outputUrl, width=480;
-
+let file, objectUrl, outputUrl, width=480, busy=false;
 const fmtBytes=n=>n<1e6?`${(n/1e3).toFixed(0)} KB`:`${(n/1e6).toFixed(1)} MB`;
 const fmtTime=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-const seek=t=>new Promise(resolve=>{video.addEventListener('seeked',resolve,{once:true});video.currentTime=Math.min(t,video.duration-.001)});
-
+const seek=t=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Video seek timed out')),8000);video.addEventListener('seeked',()=>{clearTimeout(timer);resolve()},{once:true});video.currentTime=Math.min(t,video.duration-.001)});
+const outputWidth=()=>Math.max(120,Math.min(1200,+$('#customWidth').value||width));
+function settings(){const a=Math.max(0,Math.min(+start.value||0,video.duration||0)),b=Math.max(a+.1,Math.min(+end.value||0,video.duration||0)),w=outputWidth(),h=Math.max(2,Math.round(w*(video.videoHeight||1)/(video.videoWidth||1)/2)*2),fps=+$('#fps').value,duration=b-a;return{a,b,w,h,fps,duration,frames:Math.ceil(duration*fps),colors:+$('#quality').value,loop:$('#loopForever').checked}}
 function update(){
-  if(!video.duration)return;
-  let a=Math.max(0,Math.min(+start.value,video.duration)), b=Math.max(a+.1,Math.min(+end.value,video.duration));
-  start.value=a.toFixed(1);end.value=b.toFixed(1);startR.value=a;endR.value=b;
-  const length=b-a, fps=+$('#fps').value, ratio=video.videoHeight/video.videoWidth;
-  $('#clipLength').value=`${length.toFixed(1)} sec clip`;
-  const rough=width*(width*ratio)*length*fps*.08;
-  $('#estimate').textContent=`≈ ${fmtBytes(rough)}`;
+  if(!video.duration)return;const s=settings();start.value=s.a.toFixed(1);end.value=s.b.toFixed(1);startR.value=s.a;endR.value=s.b;$('#clipLength').value=`${s.duration.toFixed(1)} sec clip`;
+  $('#estimate').textContent=`≈ ${fmtBytes(s.w*s.h*s.frames*(s.colors/128)*.08)}`;const load=s.w*s.h*s.frames,guide=$('#guidance'),safer=$('#saferBtn');
+  if(load>180e6||s.duration>20){guide.dataset.level='high';$('#guidanceTitle').textContent='Heavy conversion';$('#guidanceText').textContent='This may use a lot of memory or fail on a phone. Shorten the clip or reduce resolution.';safer.hidden=false}
+  else if(load>70e6||s.duration>10){guide.dataset.level='medium';$('#guidanceTitle').textContent='A little ambitious';$('#guidanceText').textContent='It should work on a desktop, but may take a while. Under 10 seconds is ideal.';safer.hidden=false}
+  else{guide.dataset.level='low';$('#guidanceTitle').textContent='Good to go';$('#guidanceText').textContent='These settings should convert comfortably on most devices.';safer.hidden=true}
 }
-
 function load(f){
-  if(!f||!f.type.startsWith('video/'))return alert('Please choose a video file.');
-  if(f.size>250e6)return alert('Please choose a video under 250 MB.');
-  file=f;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);video.src=objectUrl;
+  if(!f||!f.type.startsWith('video/'))return alert('Please choose a video file.');file=f;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);video.src=objectUrl;
   video.onloadedmetadata=()=>{const d=video.duration;end.value=Math.min(d,10).toFixed(1);startR.max=endR.max=d;endR.value=Math.min(d,10);$('#fileName').textContent=f.name;$('#fileMeta').textContent=`${fmtBytes(f.size)} · ${fmtTime(d)} · ${video.videoWidth}×${video.videoHeight}`;dropzone.hidden=true;editor.hidden=false;$('#result').hidden=true;update()};
+  video.onerror=()=>alert('This browser cannot read that video. MP4 (H.264), MOV, and WebM work best.');
 }
-function reset(){video.pause();video.removeAttribute('src');video.load();if(objectUrl)URL.revokeObjectURL(objectUrl);file=null;editor.hidden=true;$('#result').hidden=true;dropzone.hidden=false;fileInput.value=''}
-
+function reset(){if(busy)return;video.pause();video.removeAttribute('src');video.load();if(objectUrl)URL.revokeObjectURL(objectUrl);file=null;editor.hidden=true;$('#result').hidden=true;dropzone.hidden=false;fileInput.value=''}
 fileInput.onchange=e=>load(e.target.files[0]);dropzone.ondragover=e=>{e.preventDefault();dropzone.classList.add('drag')};dropzone.ondragleave=()=>dropzone.classList.remove('drag');dropzone.ondrop=e=>{e.preventDefault();dropzone.classList.remove('drag');load(e.dataTransfer.files[0])};dropzone.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')fileInput.click()};
-$('#replaceBtn').onclick=()=>fileInput.click();$('#resetBtn').onclick=reset;$('#againBtn').onclick=reset;
-[start,end].forEach(x=>x.oninput=update);startR.oninput=()=>{start.value=startR.value;update()};endR.oninput=()=>{end.value=endR.value;update()};$('#fps').onchange=update;
-document.querySelectorAll('.resolution button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.resolution button').forEach(x=>x.classList.remove('active'));b.classList.add('active');width=+b.dataset.width;update()});
-
+$('#replaceBtn').onclick=()=>fileInput.click();$('#resetBtn').onclick=reset;$('#againBtn').onclick=reset;[start,end,$('#fps'),$('#customWidth'),$('#quality'),$('#loopForever')].forEach(x=>x.oninput=update);startR.oninput=()=>{start.value=startR.value;update()};endR.oninput=()=>{end.value=endR.value;update()};
+document.querySelectorAll('.resolution button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.resolution button').forEach(x=>x.classList.remove('active'));b.classList.add('active');width=+b.dataset.width;$('#customWidth').value='';update()});
+$('#saferBtn').onclick=()=>{end.value=Math.min(+start.value+8,video.duration).toFixed(1);$('#fps').value='8';width=320;$('#customWidth').value='';document.querySelectorAll('.resolution button').forEach(x=>x.classList.toggle('active',x.dataset.width==='320'));update()};
+function makeWorker(){const worker=new Worker('./gif-worker.js',{type:'module'});let seq=0,waiting=new Map();worker.onmessage=e=>{const cb=waiting.get(e.data.id);if(cb){waiting.delete(e.data.id);e.data.error?cb.reject(new Error(e.data.error)):cb.resolve(e.data)}};worker.onerror=e=>{for(const cb of waiting.values())cb.reject(new Error(e.message));waiting.clear()};return{call(type,data={},transfer=[]){return new Promise((resolve,reject)=>{const id=++seq;waiting.set(id,{resolve,reject});worker.postMessage({id,type,...data},transfer)})},stop(){worker.terminate()}}}
 $('#convertBtn').onclick=async()=>{
-  const btn=$('#convertBtn'), progress=$('#progress'), bar=$('#progressBar'), text=$('#progressText');btn.disabled=true;progress.hidden=false;
-  try{
-    const a=+start.value,b=+end.value,fps=+$('#fps').value,total=Math.ceil((b-a)*fps),height=Math.max(2,Math.round(width*video.videoHeight/video.videoWidth/2)*2);
-    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d',{willReadFrequently:true});const gif=GIFEncoder();
-    for(let i=0;i<total;i++){
-      await seek(Math.min(a+i/fps,b-.001));ctx.drawImage(video,0,0,width,height);const data=ctx.getImageData(0,0,width,height).data;const palette=quantize(data,128,{format:'rgba4444',oneBitAlpha:false});const index=applyPalette(data,palette,'rgba4444');gif.writeFrame(index,width,height,{palette,delay:1000/fps,repeat:i===0?0:undefined});
-      const pct=Math.round((i+1)/total*100);bar.style.width=pct+'%';text.textContent=`Building GIF · ${pct}%`;
-      await new Promise(r=>setTimeout(r,0));
-    }
-    gif.finish();const blob=new Blob([gif.bytesView()],{type:'image/gif'});if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(blob);$('#gifPreview').src=outputUrl;$('#downloadBtn').href=outputUrl;$('#downloadBtn').download=file.name.replace(/\.[^.]+$/,'')+'.gif';$('#resultMeta').textContent=`${width}×${height} · ${(b-a).toFixed(1)} seconds · ${fmtBytes(blob.size)}`;editor.hidden=true;$('#result').hidden=false;$('#result').scrollIntoView({behavior:'smooth',block:'center'});
-  }catch(err){console.error(err);alert('That video could not be converted. Try a shorter clip or a smaller resolution.');}
-  finally{btn.disabled=false;progress.hidden=true;bar.style.width='0'}
+  if(!window.Worker)return alert('Your browser is too old for Yerp. Please use a current Safari, Chrome, Firefox, or Edge.');const btn=$('#convertBtn'),progress=$('#progress'),bar=$('#progressBar'),text=$('#progressText'),s=settings(),encoder=makeWorker();busy=true;btn.disabled=true;progress.hidden=false;
+  try{const canvas=document.createElement('canvas');canvas.width=s.w;canvas.height=s.h;const ctx=canvas.getContext('2d',{willReadFrequently:true});await encoder.call('init',{width:s.w,height:s.h,fps:s.fps,colors:s.colors,loop:s.loop});
+    for(let i=0;i<s.frames;i++){await seek(Math.min(s.a+i/s.fps,s.b-.001));ctx.drawImage(video,0,0,s.w,s.h);const image=ctx.getImageData(0,0,s.w,s.h);await encoder.call('frame',{buffer:image.data.buffer},[image.data.buffer]);const pct=Math.round((i+1)/s.frames*94);bar.style.width=pct+'%';text.textContent=`Building GIF · ${pct}%`;await new Promise(requestAnimationFrame)}
+    text.textContent='Finishing your GIF…';bar.style.width='98%';const done=await encoder.call('finish'),blob=new Blob([done.buffer],{type:'image/gif'});if(outputUrl)URL.revokeObjectURL(outputUrl);outputUrl=URL.createObjectURL(blob);$('#gifPreview').src=outputUrl;$('#downloadBtn').href=outputUrl;$('#downloadBtn').download=file.name.replace(/\.[^.]+$/,'')+'.gif';$('#resultMeta').textContent=`${s.w}×${s.h} · ${s.duration.toFixed(1)} seconds · ${fmtBytes(blob.size)}`;editor.hidden=true;$('#result').hidden=false;$('#result').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(err){console.error(err);alert('That conversion ran out of time or memory. Try “Use safer settings,” then convert again.')}finally{encoder.stop();busy=false;btn.disabled=false;progress.hidden=true;bar.style.width='0'}
 };

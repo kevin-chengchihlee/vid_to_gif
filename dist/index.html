@@ -4,21 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Turn a video clip into a GIF, privately in your browser." />
-  <title>Loop — Video to GIF</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <title>Yerp — Video to GIF</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./extras.css" />
 </head>
 <body>
   <main class="shell">
     <header>
-      <a class="brand" href="#">LOOP<span>●</span></a>
+      <a class="brand" href="#">YERP<span>●</span></a>
       <p class="privacy">PRIVATE BY DESIGN <i></i> YOUR VIDEO NEVER LEAVES THIS BROWSER</p>
     </header>
 
     <section class="hero">
       <div>
         <p class="eyebrow">VIDEO → GIF CONVERTER</p>
-        <h1>Make the moment<br><em>loop.</em></h1>
+        <h1>Make the moment<br><em>move.</em></h1>
       </div>
       <p class="lede">Trim it. Size it. Turn it into a GIF.<br>No uploads, no waiting around.</p>
     </section>
@@ -29,7 +29,7 @@
         <span class="plus">+</span>
         <strong>Choose a video</strong>
         <small>or drop it right here</small>
-        <b>MP4, MOV, WEBM · UP TO 250 MB</b>
+        <b>MP4, MOV, WEBM · 350 MB RECOMMENDED · LARGER MAY WORK</b>
       </label>
 
       <div class="editor" id="editor" hidden>
@@ -71,6 +71,17 @@
             <select id="fps"><option value="8">8 FPS · smaller</option><option value="12" selected>12 FPS · balanced</option><option value="16">16 FPS · smoother</option></select>
           </div>
 
+          <details class="advanced">
+            <summary>Advanced settings <span>+</span></summary>
+            <div class="advanced-grid">
+              <label><span>Custom width</span><input id="customWidth" type="number" min="120" max="1200" step="10" placeholder="480 px" /></label>
+              <label><span>Color quality</span><select id="quality"><option value="64">Compact · 64 colors</option><option value="128" selected>Balanced · 128 colors</option><option value="256">Best · 256 colors</option></select></label>
+              <label class="check"><input id="loopForever" type="checkbox" checked /><span>Loop forever</span></label>
+            </div>
+          </details>
+
+          <aside class="guidance" id="guidance" aria-live="polite"><b id="guidanceTitle">Good to go</b><span id="guidanceText">These settings should convert comfortably on most devices.</span><button id="saferBtn" type="button" hidden>Use safer settings</button></aside>
+
           <div class="estimate"><span>ESTIMATED OUTPUT</span><strong id="estimate">—</strong></div>
           <button class="convert" id="convertBtn" type="button"><span>Make my GIF</span><b>→</b></button>
           <div class="progress" id="progress" hidden><i id="progressBar"></i><span id="progressText">Preparing frames…</span></div>
@@ -79,11 +90,11 @@
 
       <div class="result" id="result" hidden>
         <img id="gifPreview" alt="Your finished GIF" />
-        <div><p class="eyebrow">YOUR GIF IS READY</p><h2>Nice loop.</h2><p id="resultMeta"></p><a id="downloadBtn" download="loop.gif">Download GIF ↓</a><button id="againBtn">Make another</button></div>
+        <div><p class="eyebrow">YOUR GIF IS READY</p><h2>Nice one.</h2><p id="resultMeta"></p><a id="downloadBtn" download="yerp.gif">Download GIF ↓</a><button id="againBtn">Make another</button></div>
       </div>
     </section>
 
-    <footer><span>SHORTER CLIPS MAKE BETTER GIFS.</span><span>KEEP IT UNDER 10 SECONDS FOR A LIGHTER FILE.</span></footer>
+    <footer><span>SHORTER CLIPS MAKE BETTER GIFS.</span><nav><a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a><a href="./feedback.html">Feedback</a></nav></footer>
   </main>
   <script type="module" src="./app.js"></script>
 </body>
