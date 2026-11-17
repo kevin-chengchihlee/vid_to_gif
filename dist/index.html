@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Turn a video clip into a GIF, privately in your browser." />
+  <title>Loop — Video to GIF</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <a class="brand" href="#">LOOP<span>●</span></a>
+      <p class="privacy">PRIVATE BY DESIGN <i></i> YOUR VIDEO NEVER LEAVES THIS BROWSER</p>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">VIDEO → GIF CONVERTER</p>
+        <h1>Make the moment<br><em>loop.</em></h1>
+      </div>
+      <p class="lede">Trim it. Size it. Turn it into a GIF.<br>No uploads, no waiting around.</p>
+    </section>
+
+    <section class="workspace">
+      <label class="dropzone" id="dropzone" tabindex="0">
+        <input id="fileInput" type="file" accept="video/*" hidden />
+        <span class="plus">+</span>
+        <strong>Choose a video</strong>
+        <small>or drop it right here</small>
+        <b>MP4, MOV, WEBM · UP TO 250 MB</b>
+      </label>
+
+      <div class="editor" id="editor" hidden>
+        <div class="preview-wrap">
+          <video id="video" playsinline muted controls></video>
+          <button class="replace" id="replaceBtn" type="button">↻ Replace video</button>
+        </div>
+
+        <div class="controls">
+          <div class="file-row">
+            <div><span id="fileName">video.mp4</span><small id="fileMeta">—</small></div>
+            <button id="resetBtn" aria-label="Remove video">×</button>
+          </div>
+
+          <div class="control-block">
+            <div class="label-row"><label>Trim</label><output id="clipLength">0.0 sec clip</output></div>
+            <div class="time-grid">
+              <label><span>START</span><input id="startTime" type="number" value="0" min="0" step="0.1" /></label>
+              <span class="arrow">→</span>
+              <label><span>END</span><input id="endTime" type="number" value="0" min="0" step="0.1" /></label>
+            </div>
+            <div class="range-wrap">
+              <input id="startRange" type="range" min="0" max="10" value="0" step="0.1" />
+              <input id="endRange" type="range" min="0" max="10" value="10" step="0.1" />
+            </div>
+          </div>
+
+          <div class="control-block">
+            <label>Resolution</label>
+            <div class="resolution" role="radiogroup">
+              <button data-width="320" type="button"><b>Small</b><span>320 px</span></button>
+              <button class="active" data-width="480" type="button"><b>Medium</b><span>480 px</span></button>
+              <button data-width="720" type="button"><b>Large</b><span>720 px</span></button>
+            </div>
+          </div>
+
+          <div class="control-block fps-row">
+            <label for="fps">Frame rate</label>
+            <select id="fps"><option value="8">8 FPS · smaller</option><option value="12" selected>12 FPS · balanced</option><option value="16">16 FPS · smoother</option></select>
+          </div>
+
+          <div class="estimate"><span>ESTIMATED OUTPUT</span><strong id="estimate">—</strong></div>
+          <button class="convert" id="convertBtn" type="button"><span>Make my GIF</span><b>→</b></button>
+          <div class="progress" id="progress" hidden><i id="progressBar"></i><span id="progressText">Preparing frames…</span></div>
+        </div>
+      </div>
+
+      <div class="result" id="result" hidden>
+        <img id="gifPreview" alt="Your finished GIF" />
+        <div><p class="eyebrow">YOUR GIF IS READY</p><h2>Nice loop.</h2><p id="resultMeta"></p><a id="downloadBtn" download="loop.gif">Download GIF ↓</a><button id="againBtn">Make another</button></div>
+      </div>
+    </section>
+
+    <footer><span>SHORTER CLIPS MAKE BETTER GIFS.</span><span>KEEP IT UNDER 10 SECONDS FOR A LIGHTER FILE.</span></footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
